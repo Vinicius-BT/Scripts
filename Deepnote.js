@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Deepnote Auto Click Delay
+// @name         Deepnote Auto Click Delay final
 // @icon         https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://deepnote.com&size=64
 // @namespace    http://tampermonkey.net/
 // @version      1.0
