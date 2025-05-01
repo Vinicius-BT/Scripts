@@ -5,6 +5,8 @@
 // @version      1.3
 // @description  Clica no botão "Delay shutdown by 60 minutes", mostra notificação e toca som do Verstappen
 // @match        https://deepnote.com/*
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/Deepnote.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/Deepnote.js
 // @grant        none
 // ==/UserScript==
 
