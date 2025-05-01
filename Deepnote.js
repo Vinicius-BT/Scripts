@@ -2,7 +2,7 @@
 // @name         Deepnote Auto Click Delay 🖱
 // @icon         https://t2.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://deepnote.com&size=64
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.0
 // @description  Clica no botão "Delay shutdown by 60 minutes", mostra notificação e toca som do Verstappen
 // @match        https://deepnote.com/*
 // @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/refs/heads/main/Deepnote.js?token=GHSAT0AAAAAADDEJRXBMAYHLI5AFN5QP47A2AT7CGA
