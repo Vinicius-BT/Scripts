@@ -5,8 +5,8 @@
 // @description  Clica no botão "Delay shutdown by 60 minutes"
 // @match        https://deepnote.com/*
 // @icon         https://deepnote.com/favicon.ico
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/Deepnote.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/Deepnote.js
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/refs/heads/main/Deepnote%20final.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/refs/heads/main/Deepnote%20final.js
 // @grant        none
 // ==/UserScript==
 
