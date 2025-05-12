@@ -5,8 +5,8 @@
 // @description  Clica no botão "Delay shutdown by 60 minutes"
 // @match        https://deepnote.com/*
 // @icon         https://deepnote.com/favicon.ico
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Deepnote-Auto-Click-Delay-Shutdown/refs/heads/main/Deepnote%201.0.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Deepnote-Auto-Click-Delay-Shutdown/refs/heads/main/Deepnote%201.0.js
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Deepnote-Auto-Click-Delay-Shutdown/refs/heads/main/Deepnote%20Auto%20Click%20Delay%20Shutdown.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Deepnote-Auto-Click-Delay-Shutdown/refs/heads/main/Deepnote%20Auto%20Click%20Delay%20Shutdown.js
 // @grant        none
 // ==/UserScript==
 
