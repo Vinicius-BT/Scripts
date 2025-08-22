@@ -6,8 +6,8 @@
 // @description  Permite adicionar, editar, ordenar (menu com 2 opções, alternando ordem), fechar painel, pesquisar, importar/exportar/limpar, com upload de imagem e exportação no formato dd-mm-yyyy_wplace.json (importa qualquer .json e grava em wplace_saves)
 // @author       Vinicius Bortoluzzi
 // @match        https://wplace.live/*
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.user.js
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -99,8 +99,8 @@
             <button id="wplace-close-panel">✕</button>
         </div>
         <div class="wplace-import-export">
-            <button id="wplace-export-btn" title="Exportar">📤 Exportar</button>
-            <button id="wplace-import-btn" title="Importar">📥 Importar</button>
+            <button id="wplace-export-btn" title="Exportar">⬆</button>
+            <button id="wplace-import-btn" title="Importar">⬇</button>
             <button id="wplace-clear" title="Limpar Tudo">🗑️</button>
             <input id="wplace-import-file" type="file" accept=".json" style="display: none;">
         </div>
