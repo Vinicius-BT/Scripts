@@ -2,10 +2,12 @@
 // @name         WPlace salvar localizações
 // @namespace    https://wplace.live/
 // @icon         https://wplace.live/favicon.ico
-// @version      1.17
+// @version      1.0
 // @description  Permite adicionar, editar, ordenar (menu com 2 opções, alternando ordem), fechar painel, pesquisar, importar/exportar/limpar, com upload de imagem e exportação no formato dd-mm-yyyy_wplace.json (importa qualquer .json e grava em wplace_saves)
 // @author       Vinicius Bortoluzzi
 // @match        https://wplace.live/*
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
