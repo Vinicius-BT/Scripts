@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Deepnote Auto Click Delay
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Clica no botão "Delay shutdown by 60 minutes"
 // @match        https://deepnote.com/*
 // @icon         https://deepnote.com/favicon.ico
