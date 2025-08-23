@@ -7,7 +7,7 @@
 // @author       Vinicius Bortoluzzi
 // @match        https://wplace.live/*
 // @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace_salvar_localizações.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace%20salvar%20localizações.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace_salvar_localizações.user.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
