@@ -6,8 +6,8 @@
 // @description  Permite adicionar, editar, ordenar (menu com 2 opções, alternando ordem), fechar painel, pesquisar, importar/exportar/limpar, com upload de imagem e exportação no formato dd-mm-yyyy_wplace.json (importa qualquer .json e grava em wplace_saves, usando IndexedDB)
 // @author       Vinicius Bortoluzzi
 // @match        https://wplace.live/*
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace_salvar_localizações.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace_salvar_localizações.user.js
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace locais favoritos.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace locais favoritos.user.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
@@ -265,7 +265,7 @@
     panel.id = 'wplace-panel';
     panel.innerHTML = `
         <div class="wplace-header">
-            <h2>📌 Links Salvos</h2>
+            <h2>⭐ Links Favoritos</h2>
             <button id="wplace-close-panel">✕</button>
         </div>
         <div class="wplace-import-export">
@@ -521,7 +521,7 @@
         .wplace-edit-btn { right: 40px; background: #ffaa00; color: white; }
         .wplace-edit-btn:hover { background: #cc8800; }
 
-        /* 📌 Botão fixo no LADO DIREITO (centralizado verticalmente) */
+        /* ⭐ Botão fixo no LADO DIREITO (centralizado verticalmente) */
         #wplace-btn {
             position: fixed;
             top: 50%;
@@ -563,7 +563,7 @@
         #wplace-toast.show { opacity: 0.95; transform: translateY(0); }
     `);
 
-    // Injeta botão 📌 (estrutura original preservada)
+    // Injeta botão ⭐ (estrutura original preservada)
     function injectButton() {
         const target = document.querySelector(
             'nav:not([class*="dropdown"]), aside:not([class*="dropdown"]), [class*="sidebar"]:not([class*="dropdown"]), [class*="navigation"]:not([class*="dropdown"])'
@@ -571,7 +571,7 @@
         if (target && !document.getElementById('wplace-btn')) {
             const btn = document.createElement('button');
             btn.id = 'wplace-btn';
-            btn.innerText = '📌';
+            btn.innerText = '⭐';
             btn.title = 'Abrir links salvos';
             btn.onclick = () => {
                 panel.classList.toggle('open');
@@ -581,7 +581,7 @@
         } else if (!target && !document.getElementById('wplace-btn')) {
             const btn = document.createElement('button');
             btn.id = 'wplace-btn';
-            btn.innerText = '📌';
+            btn.innerText = '⭐';
             btn.title = 'Abrir links salvos';
             btn.onclick = () => {
                 panel.classList.toggle('open');
@@ -987,7 +987,7 @@
         });
     }
 
-    // Injeta botão 📌 e inicia
+    // Injeta botão ⭐ e inicia
     tryInjectButton();
     renderPanel();
     console.log('WPlace Saver 1.1 (IndexedDB) iniciado:', new Date().toLocaleString('pt-BR'));
