@@ -6,8 +6,8 @@
 // @description  Permite adicionar, editar, ordenar (menu com 2 opções, alternando ordem), fechar painel, pesquisar, importar/exportar/limpar, com upload de imagem e exportação no formato dd-mm-yyyy_wplace.json (importa qualquer .json e grava em wplace_saves, usando IndexedDB)
 // @author       Vinicius Bortoluzzi
 // @match        https://wplace.live/*
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.user.js
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace%20salvar%20localizações.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace%20salvar%20localizações.user.js
 // @grant        GM_addStyle
 // ==/UserScript==
 
