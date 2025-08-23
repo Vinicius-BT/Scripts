@@ -2,8 +2,8 @@
 // @name         WPlace salvar localizações
 // @namespace    https://wplace.live/
 // @icon         https://wplace.live/favicon.ico
-// @version      1.0
-// @description  Permite adicionar, editar, ordenar (menu com 2 opções, alternando ordem), fechar painel, pesquisar, importar/exportar/limpar, com upload de imagem e exportação no formato dd-mm-yyyy_wplace.json (importa qualquer .json e grava em wplace_saves)
+// @version      1.1
+// @description  Permite adicionar, editar, ordenar (menu com 2 opções, alternando ordem), fechar painel, pesquisar, importar/exportar/limpar, com upload de imagem e exportação no formato dd-mm-yyyy_wplace.json (importa qualquer .json e grava em wplace_saves, usando IndexedDB)
 // @author       Vinicius Bortoluzzi
 // @match        https://wplace.live/*
 // @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/WPlace salvar localizações.js
@@ -18,6 +18,64 @@
     let sortBy = 'date'; // 'title' ou 'date'
     let sortOrder = 'desc'; // 'asc' ou 'desc'
 
+    // --- Inicialização do IndexedDB ---
+    let db;
+    const DB_NAME = 'WPlaceDB';
+    const DB_VERSION = 1;
+    const STORE_NAME = 'saves';
+
+    function initIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+            request.onupgradeneeded = (event) => {
+                db = event.target.result;
+                if (!db.objectStoreNames.contains(STORE_NAME)) {
+                    db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                }
+            };
+
+            request.onsuccess = (event) => {
+                db = event.target.result;
+                migrateLocalStorageToIndexedDB(); // Migrar dados do localStorage
+                resolve(db);
+            };
+
+            request.onerror = (event) => {
+                console.error('Erro ao abrir IndexedDB:', event.target.error);
+                reject(event.target.error);
+            };
+        });
+    }
+
+    // --- Migração de dados do localStorage para IndexedDB ---
+    function migrateLocalStorageToIndexedDB() {
+        try {
+            const localData = localStorage.getItem(STORAGE_KEY);
+            if (localData) {
+                const saves = JSON.parse(localData);
+                if (Array.isArray(saves) && saves.length > 0) {
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    saves.forEach(item => {
+                        if (item.title && item.link) {
+                            store.add({
+                                title: item.title,
+                                link: item.link,
+                                img: item.img || '',
+                                time: item.time || new Date().toISOString()
+                            });
+                        }
+                    });
+                    localStorage.removeItem(STORAGE_KEY); // Limpa localStorage após migração
+                    console.log('Dados migrados do localStorage para IndexedDB');
+                }
+            }
+        } catch (e) {
+            console.error('Erro ao migrar dados do localStorage:', e);
+        }
+    }
+
     // --- Toast (notificação leve) ---
     function showToast(msg) {
         let el = document.getElementById('wplace-toast');
@@ -31,62 +89,174 @@
         setTimeout(() => el.classList.remove('show'), 2200);
     }
 
-    // Carrega dados salvos com fallback
-    function loadSaves() {
+    // Carrega dados salvos do IndexedDB com fallback para localStorage
+    async function loadSaves() {
         try {
-            const data = localStorage.getItem(STORAGE_KEY);
-            return JSON.parse(data || '[]');
+            if (!db) await initIndexedDB();
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+
+                request.onsuccess = () => {
+                    const saves = request.result.map(item => ({
+                        title: item.title,
+                        link: item.link,
+                        img: item.img,
+                        time: item.time
+                    }));
+                    resolve(saves);
+                };
+
+                request.onerror = () => {
+                    console.error('Erro ao carregar do IndexedDB:', request.error);
+                    // Fallback para localStorage
+                    try {
+                        const data = localStorage.getItem(STORAGE_KEY);
+                        const saves = JSON.parse(data || '[]');
+                        resolve(saves);
+                    } catch (e) {
+                        console.error('Erro ao carregar do localStorage:', e);
+                        resolve([]);
+                    }
+                };
+            });
         } catch (e) {
-            console.error('Erro ao carregar salvos:', e);
-            localStorage.removeItem(STORAGE_KEY);
-            return [];
+            console.error('Erro ao inicializar IndexedDB:', e);
+            // Fallback para localStorage
+            try {
+                const data = localStorage.getItem(STORAGE_KEY);
+                return JSON.parse(data || '[]');
+            } catch (e) {
+                console.error('Erro ao carregar do localStorage:', e);
+                return [];
+            }
         }
     }
 
-    // Salva link, título e imagem
-    function saveData(title, link, imgSrc = '', isEdit = false, oldLink = null) {
+    // Salva link, título e imagem no IndexedDB
+    async function saveData(title, link, imgSrc = '', isEdit = false, oldLink = null) {
         if (!link || !title) {
             alert('Por favor, preencha o título e o link.');
             return false;
         }
-        const saves = loadSaves();
-        if (isEdit && oldLink) {
-            const index = saves.findIndex(item => item.link === oldLink);
-            if (index !== -1) {
-                saves[index] = { title, link, img: imgSrc, time: new Date().toISOString() };
+
+        try {
+            if (!db) await initIndexedDB();
+            const saves = await loadSaves();
+
+            if (isEdit && oldLink) {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const cursorRequest = store.openCursor();
+
+                return new Promise((resolve) => {
+                    cursorRequest.onsuccess = (event) => {
+                        const cursor = event.target.result;
+                        if (cursor) {
+                            if (cursor.value.link === oldLink) {
+                                cursor.update({ ...cursor.value, title, link, img: imgSrc, time: new Date().toISOString() });
+                                renderPanel();
+                                showToast('✅ Link atualizado');
+                                resolve(true);
+                            }
+                            cursor.continue();
+                        } else {
+                            alert('Erro: Item a editar não encontrado.');
+                            resolve(false);
+                        }
+                    };
+
+                    cursorRequest.onerror = () => {
+                        console.error('Erro ao editar no IndexedDB:', cursorRequest.error);
+                        alert('Erro ao atualizar o item.');
+                        resolve(false);
+                    };
+                });
+            } else if (!saves.some(item => item.link === link)) {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.add({ title, link, img: imgSrc, time: new Date().toISOString() });
+
+                return new Promise((resolve) => {
+                    request.onsuccess = () => {
+                        renderPanel();
+                        showToast('✅ Link salvo');
+                        resolve(true);
+                    };
+
+                    request.onerror = () => {
+                        console.error('Erro ao salvar no IndexedDB:', request.error);
+                        // Fallback para localStorage
+                        try {
+                            saves.push({ title, link, img: imgSrc, time: new Date().toISOString() });
+                            localStorage.setItem(STORAGE_KEY, JSON.stringify(saves));
+                            renderPanel();
+                            showToast('✅ Link salvo (usando localStorage)');
+                            resolve(true);
+                        } catch (e) {
+                            console.error('Erro ao salvar no localStorage:', e);
+                            alert('Erro ao salvar os dados. Tente exportar e limpar os dados existentes.');
+                            resolve(false);
+                        }
+                    };
+                });
             } else {
-                alert('Erro: Item a editar não encontrado.');
+                alert('Este link já está salvo.');
                 return false;
             }
-        } else if (!saves.some(item => item.link === link)) {
-            saves.push({ title, link, img: imgSrc, time: new Date().toISOString() });
-        } else {
-            alert('Este link já está salvo.');
-            return false;
-        }
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(saves));
-            renderPanel();
-            showToast('✅ Link salvo');
-            return true;
         } catch (e) {
-            console.error('Erro ao salvar no localStorage:', e);
-            alert('Erro ao salvar os dados. Pode ser que o localStorage esteja cheio.');
+            console.error('Erro geral ao salvar:', e);
+            alert('Erro ao salvar os dados. Tente novamente.');
             return false;
         }
     }
 
     // Remove item da lista
-    function removeItem(link) {
-        const saves = loadSaves();
-        const updatedSaves = saves.filter(item => item.link !== link);
+    async function removeItem(link) {
         try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSaves));
-            renderPanel();
-            showToast('🗑️ Item removido');
+            if (!db) await initIndexedDB();
+            const transaction = db.transaction([STORE_NAME], 'readwrite');
+            const store = transaction.objectStore(STORE_NAME);
+            const cursorRequest = store.openCursor();
+
+            return new Promise((resolve) => {
+                cursorRequest.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        if (cursor.value.link === link) {
+                            cursor.delete();
+                            renderPanel();
+                            showToast('🗑️ Item removido');
+                            resolve(true);
+                        }
+                        cursor.continue();
+                    } else {
+                        resolve(false);
+                    }
+                };
+
+                cursorRequest.onerror = () => {
+                    console.error('Erro ao remover do IndexedDB:', cursorRequest.error);
+                    // Fallback para localStorage
+                    try {
+                        const saves = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+                        const updatedSaves = saves.filter(item => item.link !== link);
+                        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedSaves));
+                        renderPanel();
+                        showToast('🗑️ Item removido (usando localStorage)');
+                        resolve(true);
+                    } catch (e) {
+                        console.error('Erro ao remover do localStorage:', e);
+                        alert('Erro ao remover o item.');
+                        resolve(false);
+                    }
+                };
+            });
         } catch (e) {
-            console.error('Erro ao remover item:', e);
+            console.error('Erro geral ao remover:', e);
             alert('Erro ao remover o item.');
+            return false;
         }
     }
 
@@ -135,14 +305,14 @@
     document.body.appendChild(panel);
 
     // Renderiza itens salvos com filtro e ordenação
-    function renderPanel(filter = '') {
+    async function renderPanel(filter = '') {
         const list = document.getElementById('wplace-list');
         if (!list) {
             alert('Erro: Elemento da lista não encontrado.');
             return;
         }
         list.innerHTML = '';
-        const saves = loadSaves();
+        const saves = await loadSaves();
         const filteredSaves = filter
             ? saves.filter(item =>
                   item.title.toLowerCase().includes(filter.toLowerCase()) ||
@@ -409,7 +579,6 @@
             };
             target.appendChild(btn);
         } else if (!target && !document.getElementById('wplace-btn')) {
-            // Fallback: injeta no body (sem estilos inline para não sobrescrever o CSS fixo do lado direito)
             const btn = document.createElement('button');
             btn.id = 'wplace-btn';
             btn.innerText = '📌';
@@ -442,37 +611,34 @@
     }
 
     // Adiciona ou edita item
-    function addItem(title, link, imgSrc, isEdit = false, oldLink = null) {
+    async function addItem(title, link, imgSrc, isEdit = false, oldLink = null) {
         if (imgSrc && imgSrc.startsWith('blob:')) {
-            fetch(imgSrc)
-                .then(response => {
-                    if (!response.ok) throw new Error('Resposta inválida ao converter blob');
-                    return response.blob();
-                })
-                .then(blob => {
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        const dataUrl = reader.result;
-                        if (saveData(title, link, dataUrl, isEdit, oldLink)) {
-                            resetForm();
-                        }
-                    };
-                    reader.onerror = () => {
-                        alert('Erro ao processar a imagem. Salvando sem imagem.');
-                        if (saveData(title, link, '', isEdit, oldLink)) {
-                            resetForm();
-                        }
-                    };
-                    reader.readAsDataURL(blob);
-                })
-                .catch(() => {
-                    alert('Erro ao processar a imagem. Salvando sem imagem.');
-                    if (saveData(title, link, '', isEdit, oldLink)) {
+            try {
+                const response = await fetch(imgSrc);
+                if (!response.ok) throw new Error('Resposta inválida ao converter blob');
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onload = async () => {
+                    const dataUrl = reader.result;
+                    if (await saveData(title, link, dataUrl, isEdit, oldLink)) {
                         resetForm();
                     }
-                });
+                };
+                reader.onerror = async () => {
+                    alert('Erro ao processar a imagem. Salvando sem imagem.');
+                    if (await saveData(title, link, '', isEdit, oldLink)) {
+                        resetForm();
+                    }
+                };
+                reader.readAsDataURL(blob);
+            } catch (e) {
+                alert('Erro ao processar a imagem. Salvando sem imagem.');
+                if (await saveData(title, link, '', isEdit, oldLink)) {
+                    resetForm();
+                }
+            }
         } else {
-            if (saveData(title, link, imgSrc, isEdit, oldLink)) {
+            if (await saveData(title, link, imgSrc, isEdit, oldLink)) {
                 resetForm();
             }
         }
@@ -591,13 +757,13 @@
     // Salva ou edita item
     const saveBtn = document.getElementById('wplace-save-btn');
     if (saveBtn) {
-        saveBtn.onclick = () => {
+        saveBtn.onclick = async () => {
             const title = document.getElementById('wplace-title-input')?.value.trim();
             const link = document.getElementById('wplace-link-input')?.value.trim();
             const imgSrc = document.getElementById('wplace-img-input')?.value.trim();
             const isEdit = !!saveBtn.dataset.editLink;
             const oldLink = saveBtn.dataset.editLink;
-            addItem(title, link, imgSrc, isEdit, oldLink);
+            await addItem(title, link, imgSrc, isEdit, oldLink);
         };
     }
 
@@ -664,16 +830,16 @@
         });
     }
 
-    // Exporta dados como JSON com nome no formato dd-mm-yyyy_wplace.json (como no seu script)
+    // Exporta dados como JSON com nome no formato dd-mm-yyyy_wplace.json
     const exportBtn = document.getElementById('wplace-export-btn');
     if (exportBtn) {
-        exportBtn.onclick = () => {
+        exportBtn.onclick = async () => {
             try {
-                const saves = loadSaves();
+                const saves = await loadSaves();
                 const today = new Date();
                 const dateStr = today.toLocaleDateString('pt-BR', {
                     day: '2-digit', month: '2-digit', year: 'numeric'
-                }).split('/').join('-'); // Ex.: 22-08-2025
+                }).split('/').join('-');
                 const fileName = `${dateStr}_wplace.json`;
                 const dataStr = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(saves, null, 2));
                 const downloadAnchor = document.createElement('a');
@@ -690,52 +856,101 @@
         };
     }
 
-    // Importa dados de um arquivo JSON — aceita qualquer .json e salva na chave wplace_saves
+    // Importa dados de um arquivo JSON
     const importBtn = document.getElementById('wplace-import-btn');
     const importFile = document.getElementById('wplace-import-file');
     if (importBtn && importFile) {
-    importBtn.onclick = () => importFile.click();
+        importBtn.onclick = () => importFile.click();
 
-    importFile.addEventListener('change', (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
+        importFile.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
 
-        if (!file.name.toLowerCase().endsWith('.json')) {
-            alert("Erro: Selecione um arquivo .json válido.");
-            event.target.value = '';
-            return;
-        }
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-            try {
-                const importedData = JSON.parse(e.target.result);
-                if (Array.isArray(importedData)) {
-                    // Substitui diretamente a chave esperada
-                    localStorage.setItem(STORAGE_KEY, JSON.stringify(importedData));
-                    renderPanel();
-                    showToast('📥 Importado');
-                } else {
-                    alert('Erro: Arquivo JSON inválido.');
-                }
-            } catch (err) {
-                console.error('Erro ao importar:', err);
-                alert('Erro ao importar dados.');
+            if (!file.name.toLowerCase().endsWith('.json')) {
+                alert('Erro: Selecione um arquivo .json válido.');
+                event.target.value = '';
+                return;
             }
-            event.target.value = '';
-        };
-        reader.readAsText(file);
-    });
-}
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const importedData = JSON.parse(e.target.result);
+                    if (!Array.isArray(importedData)) {
+                        alert('Erro: Arquivo JSON inválido.');
+                        event.target.value = '';
+                        return;
+                    }
+
+                    if (!db) await initIndexedDB();
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const clearRequest = store.clear();
+
+                    clearRequest.onsuccess = () => {
+                        importedData.forEach(item => {
+                            if (item.title && item.link) {
+                                store.add({
+                                    title: item.title,
+                                    link: item.link,
+                                    img: item.img || '',
+                                    time: item.time || new Date().toISOString()
+                                });
+                            }
+                        });
+                        renderPanel();
+                        showToast('📥 Importado');
+                    };
+
+                    clearRequest.onerror = () => {
+                        console.error('Erro ao limpar IndexedDB:', clearRequest.error);
+                        alert('Erro ao importar dados.');
+                    };
+
+                    event.target.value = '';
+                } catch (err) {
+                    console.error('Erro ao importar:', err);
+                    alert('Erro ao importar dados.');
+                    event.target.value = '';
+                }
+            };
+            reader.readAsText(file);
+        });
+    }
 
     // Limpa todos os salvos
     const clearBtn = document.getElementById('wplace-clear');
     if (clearBtn) {
-        clearBtn.onclick = () => {
+        clearBtn.onclick = async () => {
             if (confirm('Deseja apagar todos os links salvos?')) {
-                localStorage.removeItem(STORAGE_KEY);
-                renderPanel();
-                showToast('🗑️ Tudo limpo');
+                try {
+                    if (!db) await initIndexedDB();
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.clear();
+
+                    request.onsuccess = () => {
+                        localStorage.removeItem(STORAGE_KEY); // Limpa também o localStorage (fallback)
+                        renderPanel();
+                        showToast('🗑️ Tudo limpo');
+                    };
+
+                    request.onerror = () => {
+                        console.error('Erro ao limpar IndexedDB:', request.error);
+                        // Fallback para localStorage
+                        try {
+                            localStorage.removeItem(STORAGE_KEY);
+                            renderPanel();
+                            showToast('🗑️ Tudo limpo (usando localStorage)');
+                        } catch (e) {
+                            console.error('Erro ao limpar localStorage:', e);
+                            alert('Erro ao limpar os dados.');
+                        }
+                    };
+                } catch (e) {
+                    console.error('Erro geral ao limpar:', e);
+                    alert('Erro ao limpar os dados.');
+                }
             }
         };
     }
@@ -775,5 +990,5 @@
     // Injeta botão 📌 e inicia
     tryInjectButton();
     renderPanel();
-    console.log('WPlace Saver 1.0 iniciado:', new Date().toLocaleString('pt-BR'));
+    console.log('WPlace Saver 1.1 (IndexedDB) iniciado:', new Date().toLocaleString('pt-BR'));
 })();
