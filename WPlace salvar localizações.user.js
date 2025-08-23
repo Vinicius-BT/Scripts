@@ -775,5 +775,5 @@
     // Injeta botão 📌 e inicia
     tryInjectButton();
     renderPanel();
-    console.log('WPlace Saver 1.17 iniciado:', new Date().toLocaleString('pt-BR'));
+    console.log('WPlace Saver 1.0 iniciado:', new Date().toLocaleString('pt-BR'));
 })();
