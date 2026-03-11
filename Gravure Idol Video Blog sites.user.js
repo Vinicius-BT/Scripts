@@ -1,5 +1,5 @@
 // ==UserScript==
-// @name         Gravure Idol & YouIV Unified Script
+// @name         Gravure Idol Video Blog
 // @namespace    http://tampermonkey.net/
 // @version      9.0
 // @description  Unifica ferramentas de pesquisa para YouIV e blogs de Gravure Idols (IVWorld, X-Idol, etc)
