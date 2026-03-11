@@ -3,6 +3,7 @@
 // @namespace    http://tampermonkey.net/
 // @version      1.0
 // @description  Copia dados e abre links Mega do último para o primeiro com intervalo de 3s
+// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
 // @match        https://nyaa.porn78.info/*
 // @grant        GM_setClipboard
