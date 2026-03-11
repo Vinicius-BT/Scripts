@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NyaaPorn - Copiador & Abrir Mega (Inverso + Delay)
 // @namespace    http://tampermonkey.net/
-// @version      1.7
+// @version      1.0
 // @description  Copia dados e abre links Mega do último para o primeiro com intervalo de 3s
 // @author       Gemini
 // @match        https://nyaa.porn78.info/*
