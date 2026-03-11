@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Gravure Idol Video Blog
+// @name         Gravure Idol Video Blog (Sem Duplicados)
 // @namespace    http://tampermonkey.net/
-// @version      8.5
-// @description  Suporte para YouIV.tv + Pesquisa de código limpo no IVWorld e Nyaa.
+// @version      8.6
+// @description  Correção de botões duplicados e melhoria na detecção de posts.
 // @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
 // @match        *://ivworld.net/*
@@ -55,14 +55,16 @@
     }
 
     function addButtonToTitles() {
-        // Adicionado h1 para compatibilidade com youiv.tv
-        const selectors = ['h1', 'h2.post-title a', '.entry-title', '.post-title'];
+        // Seletores comuns de títulos
+        const selectors = ['h1', 'h2.post-title', '.entry-title', '.post-title'];
 
         selectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
-                // Evita processar o mesmo elemento ou elementos irrelevantes (como o logo)
-                if (element.getAttribute('data-gm-processed')) return;
-                if (element.closest('header') && selector === 'h1') return; 
+                // Tenta encontrar o container do post para evitar duplicidade no mesmo bloco
+                let entryWrapper = element.closest('article') || element.closest('.post') || element.closest('.entry') || element;
+                
+                if (entryWrapper.getAttribute('data-gm-processed')) return;
+                if (element.closest('header') && selector === 'h1') return; // Ignora h1 do topo do site
 
                 let originalTitle = element.innerText.trim();
                 if (!originalTitle || originalTitle.length < 4) return;
@@ -71,21 +73,16 @@
 
                 // --- LÓGICA DO CÓDIGO (ID) ---
                 let searchId = "";
-                // Regex melhorada para pegar códigos tipo OME-518 ou MMR-AZ015
                 const idMatch = cleanBase.match(/([A-Z0-9]+-[A-Z0-9]+)/i) || cleanBase.match(/([A-Z0-9]+-[0-9]+)/i);
+                if (idMatch) searchId = idMatch[1].trim();
 
-                if (idMatch) {
-                    searchId = idMatch[1].trim();
-                }
-
-                // --- LÓGICA DA ATRIZ (Apenas se houver separador) ---
+                // --- LÓGICA DA ATRIZ ---
                 let actressName = "";
                 let actressMatch = cleanBase.match(/(?:\]|\b)\s*([^–\-\/\[\(]+)\s*[–\-]/);
-                if (actressMatch) {
-                    actressName = actressMatch[1].trim();
-                }
+                if (actressMatch) actressName = actressMatch[1].trim();
 
                 const container = document.createElement('div');
+                container.className = "gm-button-container";
                 container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
 
                 // 1. Botão Atriz
@@ -99,7 +96,7 @@
                     container.appendChild(btnActress);
                 }
 
-                // 2. Botão Copiar Título (Útil em todos os sites)
+                // 2. Botão Copiar Título
                 container.appendChild(createOriginalButton('Copiar', '📋', 'Copiar título limpo', (btn) => {
                     let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
                     copyTextToClipboard(cleanedTitle);
@@ -107,31 +104,29 @@
                     setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
                 }));
 
-                // 3. Botões de Busca Baseados no Código
+                // 3. Botões de Busca
                 if (searchId) {
-                    // Botão para pesquisar no IVWorld (mesmo estando no YouIV)
                     const btnIV = createOriginalButton('IVWorld', '🔍', `Pesquisar ${searchId} no IVWorld`, () => {
                         GM_openInTab(`${IVWORLD_SEARCH_URL}${encodeURIComponent(searchId)}`);
                     });
-                    btnIV.style.background = '#f1f8e9'; // Verde suave
-                    btnIV.style.borderColor = '#c5e1a5';
+                    btnIV.style.background = '#f1f8e9';
                     container.appendChild(btnIV);
 
-                    // Botão Nyaa
                     const btnNyaa = createOriginalButton('Nyaa', '🔞', `Buscar ${searchId} no Nyaa`, () => {
                         GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(searchId)}#gsc.tab=0`);
                     });
                     btnNyaa.style.background = '#ffebee';
-                    btnNyaa.style.borderColor = '#ef9a9a';
                     container.appendChild(btnNyaa);
                 }
 
-                element.parentNode.insertBefore(container, element.nextSibling);
-                element.setAttribute('data-gm-processed', 'true');
+                // Insere os botões e marca o WRAPPER como processado (bloqueia duplicatas)
+                element.after(container);
+                entryWrapper.setAttribute('data-gm-processed', 'true');
             });
         });
     }
 
+    // Executa e observa mudanças na página
     addButtonToTitles();
     const observer = new MutationObserver(addButtonToTitles);
     observer.observe(document.body, { childList: true, subtree: true });
