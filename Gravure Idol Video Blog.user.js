@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Gravure Idol Video Blog
 // @namespace    http://tampermonkey.net/
-// @version      8.4.0
+// @version      8.4
 // @description  Pesquisa apenas o código (ex: MMR-AZ015) sem os colchetes [].
 // @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
