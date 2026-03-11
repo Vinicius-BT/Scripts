@@ -1,15 +1,14 @@
 // ==UserScript==
-// @name         Gravure Idol Video Blog (Sem Duplicados)
+// @name         Gravure Idol Video Blog
 // @namespace    http://tampermonkey.net/
-// @version      8.6
-// @description  Correção de botões duplicados e melhoria na detecção de posts.
+// @version      8.4
+// @description  Pesquisa apenas o código (ex: MMR-AZ015) sem os colchetes [].
 // @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
 // @match        *://ivworld.net/*
 // @match        *://www.ivworld.net/*
 // @match        *://xidol.net/*
 // @match        *://x-idol.net/*
-// @match        *://youiv.tv/*
 // @grant        GM_setClipboard
 // @grant        GM_openInTab
 // @run-at       document-idle
@@ -21,7 +20,6 @@
     'use strict';
 
     const NYAA_BASE_URL = "https://nyaa.porn78.info/en/video/index?search=";
-    const IVWORLD_SEARCH_URL = "https://ivworld.net/?s=";
 
     function copyTextToClipboard(text) {
         GM_setClipboard(text, 'text');
@@ -55,34 +53,39 @@
     }
 
     function addButtonToTitles() {
-        // Seletores comuns de títulos
-        const selectors = ['h1', 'h2.post-title', '.entry-title', '.post-title'];
+        const selectors = ['h2.post-title a', '.entry-title', '.post-title'];
 
         selectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
-                // Tenta encontrar o container do post para evitar duplicidade no mesmo bloco
-                let entryWrapper = element.closest('article') || element.closest('.post') || element.closest('.entry') || element;
-                
-                if (entryWrapper.getAttribute('data-gm-processed')) return;
-                if (element.closest('header') && selector === 'h1') return; // Ignora h1 do topo do site
+                let entryWrapper = element.closest('.entry.clearfix') || element.closest('.post, .entry');
+                if (entryWrapper && entryWrapper.getAttribute('data-gm-processed')) return;
 
-                let originalTitle = element.innerText.trim();
-                if (!originalTitle || originalTitle.length < 4) return;
+                let targetElement = element.tagName === 'A' ? element : element.querySelector('a') || element;
+                let originalTitle = targetElement.innerText.trim();
+                if (!originalTitle || originalTitle.length < 5) return;
 
                 let cleanBase = originalTitle.replace(/^Permalink to\s*/i, '').trim();
 
-                // --- LÓGICA DO CÓDIGO (ID) ---
+                // --- LÓGICA DO CÓDIGO (ID) SEM COLCHETES ---
+                // Esta regex procura especificamente o padrão dentro de [] ou solto, mas captura apenas o conteúdo interno
                 let searchId = "";
-                const idMatch = cleanBase.match(/([A-Z0-9]+-[A-Z0-9]+)/i) || cleanBase.match(/([A-Z0-9]+-[0-9]+)/i);
-                if (idMatch) searchId = idMatch[1].trim();
+                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+)\]?/i) || cleanBase.match(/([A-Z0-9]+-[0-9]+)/i);
+
+                if (idMatch) {
+                    searchId = idMatch[1].trim(); // Pega apenas o grupo 1 (o que está dentro, sem os [])
+                }
 
                 // --- LÓGICA DA ATRIZ ---
                 let actressName = "";
-                let actressMatch = cleanBase.match(/(?:\]|\b)\s*([^–\-\/\[\(]+)\s*[–\-]/);
-                if (actressMatch) actressName = actressMatch[1].trim();
+                let actressMatch = cleanBase.match(/\]\s*([^–\-\/\[\(]+)/);
+                if (actressMatch && actressMatch[1]) {
+                    actressName = actressMatch[1].trim();
+                }
+
+                // --- LIMPEZA DO TÍTULO ---
+                let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
 
                 const container = document.createElement('div');
-                container.className = "gm-button-container";
                 container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
 
                 // 1. Botão Atriz
@@ -97,36 +100,32 @@
                 }
 
                 // 2. Botão Copiar Título
-                container.appendChild(createOriginalButton('Copiar', '📋', 'Copiar título limpo', (btn) => {
-                    let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
+                container.appendChild(createOriginalButton('Copiar', '📋', 'Copiar título', (btn) => {
                     copyTextToClipboard(cleanedTitle);
                     btn.innerHTML = '✅ Título!';
                     setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
                 }));
 
-                // 3. Botões de Busca
+                // 3. Botões de Busca (Apenas se o Código for encontrado)
                 if (searchId) {
-                    const btnIV = createOriginalButton('IVWorld', '🔍', `Pesquisar ${searchId} no IVWorld`, () => {
-                        GM_openInTab(`${IVWORLD_SEARCH_URL}${encodeURIComponent(searchId)}`);
+                    const btnSite = createOriginalButton('Site', '🔍', `Pesquisar código: ${searchId}`, () => {
+                        window.open(`${window.location.origin}/?s=${encodeURIComponent(searchId)}`, '_blank');
                     });
-                    btnIV.style.background = '#f1f8e9';
-                    container.appendChild(btnIV);
+                    container.appendChild(btnSite);
 
-                    const btnNyaa = createOriginalButton('Nyaa', '🔞', `Buscar ${searchId} no Nyaa`, () => {
+                    const btnNyaa = createOriginalButton('Nyaa', '🔞', `Buscar código no Nyaa: ${searchId}`, () => {
                         GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(searchId)}#gsc.tab=0`);
                     });
                     btnNyaa.style.background = '#ffebee';
                     container.appendChild(btnNyaa);
                 }
 
-                // Insere os botões e marca o WRAPPER como processado (bloqueia duplicatas)
-                element.after(container);
-                entryWrapper.setAttribute('data-gm-processed', 'true');
+                targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
+                if (entryWrapper) entryWrapper.setAttribute('data-gm-processed', 'true');
             });
         });
     }
 
-    // Executa e observa mudanças na página
     addButtonToTitles();
     const observer = new MutationObserver(addButtonToTitles);
     observer.observe(document.body, { childList: true, subtree: true });
