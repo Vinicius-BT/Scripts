@@ -1,12 +1,11 @@
 // ==UserScript==
-// @name         Gravure Idol Video Blog
+// @name         Gravure Idols ferramentas unificadas
 // @namespace    http://tampermonkey.net/
-// @version      9.0
-// @description  Unifica ferramentas de pesquisa para YouIV e blogs de Gravure Idols (IVWorld, X-Idol, etc)
+// @version      1.0
+// @description  Correção definitiva para códigos complexos (ex: MMR-AZ200) e detecção de títulos no YouIV
 // @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
-// @match        *://youiv.tv/*.html
-// @match        *://youiv.tv/forum.php?mod=viewthread*
+// @match        *://youiv.tv/*
 // @match        *://ivworld.net/*
 // @match        *://www.ivworld.net/*
 // @match        *://xidol.net/*
@@ -23,7 +22,6 @@
 
     const NYAA_BASE_URL = "https://nyaa.porn78.info/en/video/index?search=";
 
-    // --- FUNÇÕES AUXILIARES ---
     function copyTextToClipboard(text) {
         GM_setClipboard(text, 'text');
     }
@@ -48,20 +46,28 @@
         });
 
         btn.innerHTML = icon ? `${icon} ${text}` : text;
-        btn.addEventListener('click', (e) => {
+        btn.onclick = (e) => {
             e.preventDefault();
             e.stopPropagation();
             onClick(btn);
-        });
+        };
         return btn;
     }
 
     // --- LÓGICA PARA YOUIV.TV ---
     function handleYouIV() {
-        const titleElement = document.querySelector('h1.ts');
+        // Tenta achar o título principal por classe, ID ou tag
+        const titleElement = document.querySelector('h1.ts') ||
+                             document.querySelector('#thread_subject') ||
+                             document.querySelector('.vwth h1') ||
+                             document.querySelector('h1');
+
         if (titleElement && !titleElement.getAttribute('data-processed')) {
             const titleText = titleElement.innerText;
-            const codeMatch = titleText.match(/([A-Z0-9]+-[0-9]+)/i);
+
+            // REGEX MELHORADA: Procura padrões como OME-518 ou MMR-AZ200
+            // Captura: Letras-Letras+Números
+            const codeMatch = titleText.match(/([A-Z0-9]+-[A-Z0-9]+)/i);
 
             if (codeMatch && codeMatch[0]) {
                 const code = codeMatch[0].toUpperCase();
@@ -78,16 +84,16 @@
 
                 container.appendChild(btnIV);
                 container.appendChild(btnNyaa);
+
                 titleElement.insertAdjacentElement('afterend', container);
                 titleElement.setAttribute('data-processed', 'true');
             }
         }
     }
 
-    // --- LÓGICA PARA BLOGS (IVWorld, XIdol, etc) ---
+    // --- LÓGICA PARA BLOGS ---
     function handleBlogs() {
         const selectors = ['h2.post-title a', '.entry-title', '.post-title'];
-
         selectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
                 let entryWrapper = element.closest('.entry.clearfix') || element.closest('.post, .entry');
@@ -99,23 +105,20 @@
 
                 let cleanBase = originalTitle.replace(/^Permalink to\s*/i, '').trim();
 
-                // Extração do Código
+                // Regex compatível com MMR-AZ200 também nos blogs
                 let searchId = "";
-                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+)\]?/i) || cleanBase.match(/([A-Z0-9]+-[0-9]+)/i);
+                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+)\]?/i);
                 if (idMatch) searchId = idMatch[1].trim();
 
-                // Extração da Atriz
                 let actressName = "";
                 let actressMatch = cleanBase.match(/\]\s*([^–\-\/\[\(]+)/);
                 if (actressMatch && actressMatch[1]) actressName = actressMatch[1].trim();
 
-                // Limpeza do Título para cópia
                 let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
 
                 const container = document.createElement('div');
                 container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
 
-                // Botão Atriz
                 if (actressName && actressName.length > 2) {
                     const btnActress = createStyledButton('Atriz', '👤', `Copiar: ${actressName}`, '#e3f2fd', (btn) => {
                         copyTextToClipboard(actressName);
@@ -125,14 +128,12 @@
                     container.appendChild(btnActress);
                 }
 
-                // Botão Copiar Título
                 container.appendChild(createStyledButton('Copiar', '📋', 'Copiar título', '#f8f9fa', (btn) => {
                     copyTextToClipboard(cleanedTitle);
                     btn.innerHTML = '✅ Título!';
                     setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
                 }));
 
-                // Botões de Busca
                 if (searchId) {
                     const btnSite = createStyledButton('Site', '🔍', `Pesquisar código: ${searchId}`, null, () => {
                         window.open(`${window.location.origin}/?s=${encodeURIComponent(searchId)}`, '_blank');
@@ -151,7 +152,6 @@
         });
     }
 
-    // --- EXECUÇÃO ---
     function init() {
         if (window.location.hostname.includes('youiv.tv')) {
             handleYouIV();
