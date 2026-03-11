@@ -1,14 +1,15 @@
 // ==UserScript==
 // @name         Gravure Idol Video Blog
 // @namespace    http://tampermonkey.net/
-// @version      8.4
-// @description  Pesquisa apenas o código (ex: MMR-AZ015) sem os colchetes [].
+// @version      8.5
+// @description  Suporte para YouIV.tv + Pesquisa de código limpo no IVWorld e Nyaa.
 // @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
 // @match        *://ivworld.net/*
 // @match        *://www.ivworld.net/*
 // @match        *://xidol.net/*
 // @match        *://x-idol.net/*
+// @match        *://youiv.tv/*
 // @grant        GM_setClipboard
 // @grant        GM_openInTab
 // @run-at       document-idle
@@ -20,6 +21,7 @@
     'use strict';
 
     const NYAA_BASE_URL = "https://nyaa.porn78.info/en/video/index?search=";
+    const IVWORLD_SEARCH_URL = "https://ivworld.net/?s=";
 
     function copyTextToClipboard(text) {
         GM_setClipboard(text, 'text');
@@ -53,37 +55,35 @@
     }
 
     function addButtonToTitles() {
-        const selectors = ['h2.post-title a', '.entry-title', '.post-title'];
+        // Adicionado h1 para compatibilidade com youiv.tv
+        const selectors = ['h1', 'h2.post-title a', '.entry-title', '.post-title'];
 
         selectors.forEach(selector => {
             document.querySelectorAll(selector).forEach(element => {
-                let entryWrapper = element.closest('.entry.clearfix') || element.closest('.post, .entry');
-                if (entryWrapper && entryWrapper.getAttribute('data-gm-processed')) return;
+                // Evita processar o mesmo elemento ou elementos irrelevantes (como o logo)
+                if (element.getAttribute('data-gm-processed')) return;
+                if (element.closest('header') && selector === 'h1') return; 
 
-                let targetElement = element.tagName === 'A' ? element : element.querySelector('a') || element;
-                let originalTitle = targetElement.innerText.trim();
-                if (!originalTitle || originalTitle.length < 5) return;
+                let originalTitle = element.innerText.trim();
+                if (!originalTitle || originalTitle.length < 4) return;
 
                 let cleanBase = originalTitle.replace(/^Permalink to\s*/i, '').trim();
 
-                // --- LÓGICA DO CÓDIGO (ID) SEM COLCHETES ---
-                // Esta regex procura especificamente o padrão dentro de [] ou solto, mas captura apenas o conteúdo interno
+                // --- LÓGICA DO CÓDIGO (ID) ---
                 let searchId = "";
-                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+)\]?/i) || cleanBase.match(/([A-Z0-9]+-[0-9]+)/i);
+                // Regex melhorada para pegar códigos tipo OME-518 ou MMR-AZ015
+                const idMatch = cleanBase.match(/([A-Z0-9]+-[A-Z0-9]+)/i) || cleanBase.match(/([A-Z0-9]+-[0-9]+)/i);
 
                 if (idMatch) {
-                    searchId = idMatch[1].trim(); // Pega apenas o grupo 1 (o que está dentro, sem os [])
+                    searchId = idMatch[1].trim();
                 }
 
-                // --- LÓGICA DA ATRIZ ---
+                // --- LÓGICA DA ATRIZ (Apenas se houver separador) ---
                 let actressName = "";
-                let actressMatch = cleanBase.match(/\]\s*([^–\-\/\[\(]+)/);
-                if (actressMatch && actressMatch[1]) {
+                let actressMatch = cleanBase.match(/(?:\]|\b)\s*([^–\-\/\[\(]+)\s*[–\-]/);
+                if (actressMatch) {
                     actressName = actressMatch[1].trim();
                 }
-
-                // --- LIMPEZA DO TÍTULO ---
-                let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
 
                 const container = document.createElement('div');
                 container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
@@ -99,29 +99,35 @@
                     container.appendChild(btnActress);
                 }
 
-                // 2. Botão Copiar Título
-                container.appendChild(createOriginalButton('Copiar', '📋', 'Copiar título', (btn) => {
+                // 2. Botão Copiar Título (Útil em todos os sites)
+                container.appendChild(createOriginalButton('Copiar', '📋', 'Copiar título limpo', (btn) => {
+                    let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
                     copyTextToClipboard(cleanedTitle);
                     btn.innerHTML = '✅ Título!';
                     setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
                 }));
 
-                // 3. Botões de Busca (Apenas se o Código for encontrado)
+                // 3. Botões de Busca Baseados no Código
                 if (searchId) {
-                    const btnSite = createOriginalButton('Site', '🔍', `Pesquisar código: ${searchId}`, () => {
-                        window.open(`${window.location.origin}/?s=${encodeURIComponent(searchId)}`, '_blank');
+                    // Botão para pesquisar no IVWorld (mesmo estando no YouIV)
+                    const btnIV = createOriginalButton('IVWorld', '🔍', `Pesquisar ${searchId} no IVWorld`, () => {
+                        GM_openInTab(`${IVWORLD_SEARCH_URL}${encodeURIComponent(searchId)}`);
                     });
-                    container.appendChild(btnSite);
+                    btnIV.style.background = '#f1f8e9'; // Verde suave
+                    btnIV.style.borderColor = '#c5e1a5';
+                    container.appendChild(btnIV);
 
-                    const btnNyaa = createOriginalButton('Nyaa', '🔞', `Buscar código no Nyaa: ${searchId}`, () => {
+                    // Botão Nyaa
+                    const btnNyaa = createOriginalButton('Nyaa', '🔞', `Buscar ${searchId} no Nyaa`, () => {
                         GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(searchId)}#gsc.tab=0`);
                     });
                     btnNyaa.style.background = '#ffebee';
+                    btnNyaa.style.borderColor = '#ef9a9a';
                     container.appendChild(btnNyaa);
                 }
 
-                targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
-                if (entryWrapper) entryWrapper.setAttribute('data-gm-processed', 'true');
+                element.parentNode.insertBefore(container, element.nextSibling);
+                element.setAttribute('data-gm-processed', 'true');
             });
         });
     }
