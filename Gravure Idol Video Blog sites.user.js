@@ -1,8 +1,9 @@
 // ==UserScript==
-// @name         Gravure Idols ferramentas unificadas (v1.2)
+// @name         Gravure Idols ferramentas unificadas
 // @namespace    http://tampermonkey.net/
-// @version      1.2
+// @version      1.3
 // @description  Correção definitiva para códigos complexos, IDs numéricos (ex: 211880) e detecção de títulos
+// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
 // @match        *://youiv.tv/*
 // @match        *://ivworld.net/*
