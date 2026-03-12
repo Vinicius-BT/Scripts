@@ -1,9 +1,8 @@
 // ==UserScript==
-// @name         Gravure Idols ferramentas unificadas
+// @name         Gravure Idols ferramentas unificadas (v1.2)
 // @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Correção definitiva para códigos complexos (ex: MMR-AZ200) e detecção de títulos no YouIV
-// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
+// @version      1.2
+// @description  Correção definitiva para códigos complexos, IDs numéricos (ex: 211880) e detecção de títulos
 // @author       Gemini
 // @match        *://youiv.tv/*
 // @match        *://ivworld.net/*
@@ -13,8 +12,6 @@
 // @grant        GM_setClipboard
 // @grant        GM_openInTab
 // @run-at       document-idle
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/Gravure Idol Video Blog sites.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/Gravure Idol Video Blog sites.user.js
 // ==/UserScript==
 
 (function() {
@@ -56,7 +53,6 @@
 
     // --- LÓGICA PARA YOUIV.TV ---
     function handleYouIV() {
-        // Tenta achar o título principal por classe, ID ou tag
         const titleElement = document.querySelector('h1.ts') ||
                              document.querySelector('#thread_subject') ||
                              document.querySelector('.vwth h1') ||
@@ -65,9 +61,8 @@
         if (titleElement && !titleElement.getAttribute('data-processed')) {
             const titleText = titleElement.innerText;
 
-            // REGEX MELHORADA: Procura padrões como OME-518 ou MMR-AZ200
-            // Captura: Letras-Letras+Números
-            const codeMatch = titleText.match(/([A-Z0-9]+-[A-Z0-9]+)/i);
+            // REGEX ATUALIZADA: Aceita PADRÃO-123 OU apenas NÚMEROS (5+ dígitos)
+            const codeMatch = titleText.match(/([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))/i);
 
             if (codeMatch && codeMatch[0]) {
                 const code = codeMatch[0].toUpperCase();
@@ -105,9 +100,9 @@
 
                 let cleanBase = originalTitle.replace(/^Permalink to\s*/i, '').trim();
 
-                // Regex compatível com MMR-AZ200 também nos blogs
+                // Regex atualizada também para os blogs
                 let searchId = "";
-                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+)\]?/i);
+                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))\]?/i);
                 if (idMatch) searchId = idMatch[1].trim();
 
                 let actressName = "";
