@@ -13,6 +13,8 @@
 // @grant        GM_setClipboard
 // @grant        GM_openInTab
 // @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
 // ==/UserScript==
 
 (function() {
