@@ -1,15 +1,15 @@
 // ==UserScript==
-// @name         NyaaPorn - Copiador & Abrir Mega (Inverso + Delay)
-// @namespace    http://tampermonkey.net/
-// @version      1.0
-// @description  Copia dados e abre links Mega do último para o primeiro com intervalo de 3s
-// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
-// @author       Gemini
-// @match        https://nyaa.porn78.info/*
-// @grant        GM_setClipboard
-// @grant        GM_openInTab
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
+// @name         NyaaPorn - Copiador & Abrir Mega (Inverso + Delay)
+// @namespace    http://tampermonkey.net/
+// @version      1.1
+// @description  Copia dados (substituindo / por - no título) e abre links Mega do último para o primeiro
+// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
+// @author       Gemini
+// @match        https://nyaa.porn78.info/*
+// @grant        GM_setClipboard
+// @grant        GM_openInTab
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
 // ==/UserScript==
 
 (function() {
@@ -20,7 +20,12 @@
         if (!titleElement || document.getElementById('copy-btn-container')) return;
 
         const fullTitle = titleElement.innerText.trim();
-        const cleanTitle = fullTitle.replace(/\s*\[[A-Z0-9.\/ _-]+\]\s*$/i, '').trim();
+        
+        // --- MUDANÇA AQUI: Remove tags de arquivo E substitui "/" por " - " ---
+        const cleanTitle = fullTitle
+            .replace(/\s*\[[A-Z0-9.\/ _-]+\]\s*$/i, '') // Remove info de arquivo no final
+            .replace(/\//g, ' - ')                     // Substitui as barras por traços
+            .trim();
 
         let actressName = "";
         const nameMatch = fullTitle.match(/\]\s*(.*?)\s*[–-]/);
