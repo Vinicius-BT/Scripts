@@ -1,18 +1,17 @@
 // ==UserScript==
-// @name         Gravure Idols ferramentas unificadas
-// @namespace    http://tampermonkey.net/
-// @version      1.3
-// @description  Correção definitiva para códigos complexos, IDs numéricos e detecção de títulos
-// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
-// @author       Gemini
-// @match        *://youiv.tv/*
-// @match        *://ivworld.net/*
-// @match        *://www.ivworld.net/*
-// @match        *://xidol.net/*
-// @match        *://x-idol.net/*
-// @grant        GM_setClipboard
-// @grant        GM_openInTab
-// @run-at       document-idle
+// @name         Gravure Idols ferramentas unificadas
+// @namespace    http://tampermonkey.net/
+// @version      1.4
+// @description  Correção para códigos complexos, substituição de '/' por ' - ' e detecção de títulos
+// @author       Gemini
+// @match        *://youiv.tv/*
+// @match        *://ivworld.net/*
+// @match        *://www.ivworld.net/*
+// @match        *://xidol.net/*
+// @match        *://x-idol.net/*
+// @grant        GM_setClipboard
+// @grant        GM_openInTab
+// @run-at       document-idle
 // @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
 // @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
 // ==/UserScript==
@@ -54,7 +53,6 @@
         return btn;
     }
 
-    // --- LÓGICA PARA YOUIV.TV ---
     function handleYouIV() {
         const titleElement = document.querySelector('h1.ts') ||
                              document.querySelector('#thread_subject') ||
@@ -63,8 +61,6 @@
 
         if (titleElement && !titleElement.getAttribute('data-processed')) {
             const titleText = titleElement.innerText;
-
-            // REGEX ATUALIZADA: Aceita PADRÃO-123 OU apenas NÚMEROS (5+ dígitos)
             const codeMatch = titleText.match(/([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))/i);
 
             if (codeMatch && codeMatch[0]) {
@@ -72,16 +68,13 @@
                 const container = document.createElement('div');
                 container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
 
-                const btnIV = createStyledButton('IVWorld', '🔍', `Pesquisar ${code}`, 'rgb(241, 248, 233)', () => {
+                container.appendChild(createStyledButton('IVWorld', '🔍', `Pesquisar ${code}`, 'rgb(241, 248, 233)', () => {
                     window.open(`https://ivworld.net/?s=${encodeURIComponent(code)}`, '_blank');
-                });
+                }));
 
-                const btnNyaa = createStyledButton('Nyaa', '🔞', `Buscar ${code}`, 'rgb(255, 235, 238)', () => {
+                container.appendChild(createStyledButton('Nyaa', '🔞', `Buscar ${code}`, 'rgb(255, 235, 238)', () => {
                     GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(code)}#gsc.tab=0`);
-                });
-
-                container.appendChild(btnIV);
-                container.appendChild(btnNyaa);
+                }));
 
                 titleElement.insertAdjacentElement('afterend', container);
                 titleElement.setAttribute('data-processed', 'true');
@@ -89,7 +82,6 @@
         }
     }
 
-    // --- LÓGICA PARA BLOGS ---
     function handleBlogs() {
         const selectors = ['h2.post-title a', '.entry-title', '.post-title'];
         selectors.forEach(selector => {
@@ -101,47 +93,48 @@
                 let originalTitle = targetElement.innerText.trim();
                 if (!originalTitle || originalTitle.length < 5) return;
 
-                let cleanBase = originalTitle.replace(/^Permalink to\s*/i, '').trim();
+                // --- LÓGICA DE LIMPEZA E FORMATAÇÃO DO TÍTULO ---
+                let cleanedTitle = originalTitle
+                    .replace(/^Permalink to\s*/i, '') // Remove prefixo de blog
+                    .replace(/\//g, ' - ')            // SUBSTITUI "/" POR " - " (Sena Natsuki fix)
+                    .replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '') // Remove info de arquivo no fim
+                    .trim();
 
-                // Regex atualizada também para os blogs
+                // Extração do ID para busca (mantemos a busca original sem o " - ")
                 let searchId = "";
-                const idMatch = cleanBase.match(/\[?([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))\]?/i);
+                const idMatch = originalTitle.match(/\[?([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))\]?/i);
                 if (idMatch) searchId = idMatch[1].trim();
 
+                // Extração do nome da Atriz
                 let actressName = "";
-                let actressMatch = cleanBase.match(/\]\s*([^–\-\/\[\(]+)/);
+                let actressMatch = originalTitle.match(/\]\s*([^–\-\/\[\(]+)/);
                 if (actressMatch && actressMatch[1]) actressName = actressMatch[1].trim();
-
-                let cleanedTitle = cleanBase.replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '').trim();
 
                 const container = document.createElement('div');
                 container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
 
                 if (actressName && actressName.length > 2) {
-                    const btnActress = createStyledButton('Atriz', '👤', `Copiar: ${actressName}`, '#e3f2fd', (btn) => {
+                    container.appendChild(createStyledButton('Atriz', '👤', `Copiar: ${actressName}`, '#e3f2fd', (btn) => {
                         copyTextToClipboard(actressName);
                         btn.innerHTML = '✅ Copiado!';
                         setTimeout(() => { btn.innerHTML = '👤 Atriz'; }, 1200);
-                    });
-                    container.appendChild(btnActress);
+                    }));
                 }
 
-                container.appendChild(createStyledButton('Copiar', '📋', 'Copiar título', '#f8f9fa', (btn) => {
+                container.appendChild(createStyledButton('Copiar', '📋', 'Copiar título formatado', '#f8f9fa', (btn) => {
                     copyTextToClipboard(cleanedTitle);
                     btn.innerHTML = '✅ Título!';
                     setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
                 }));
 
                 if (searchId) {
-                    const btnSite = createStyledButton('Site', '🔍', `Pesquisar código: ${searchId}`, null, () => {
+                    container.appendChild(createStyledButton('Site', '🔍', `Pesquisar código: ${searchId}`, null, () => {
                         window.open(`${window.location.origin}/?s=${encodeURIComponent(searchId)}`, '_blank');
-                    });
-                    container.appendChild(btnSite);
+                    }));
 
-                    const btnNyaa = createStyledButton('Nyaa', '🔞', `Buscar no Nyaa: ${searchId}`, '#ffebee', () => {
+                    container.appendChild(createStyledButton('Nyaa', '🔞', `Buscar no Nyaa: ${searchId}`, '#ffebee', () => {
                         GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(searchId)}#gsc.tab=0`);
-                    });
-                    container.appendChild(btnNyaa);
+                    }));
                 }
 
                 targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
