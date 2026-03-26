@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Gravure Idols ferramentas unificadas
 // @namespace    http://tampermonkey.net/
-// @version      1.5
+// @version      1.6
 // @description  Remove tags de arquivo final [MP4 - GB], substitui '/' por ' - ' e ferramentas de busca
 // @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @author       Gemini
