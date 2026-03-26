@@ -1,17 +1,17 @@
 // ==UserScript==
-// @name         Gravure Idols ferramentas unificadas
-// @namespace    http://tampermonkey.net/
-// @version      1.4
-// @description  Correção para códigos complexos, substituição de '/' por ' - ' e detecção de títulos
-// @author       Gemini
-// @match        *://youiv.tv/*
-// @match        *://ivworld.net/*
-// @match        *://www.ivworld.net/*
-// @match        *://xidol.net/*
-// @match        *://x-idol.net/*
-// @grant        GM_setClipboard
-// @grant        GM_openInTab
-// @run-at       document-idle
+// @name         Gravure Idols ferramentas unificadas
+// @namespace    http://tampermonkey.net/
+// @version      1.5
+// @description  Remove tags de arquivo final [MP4 - GB], substitui '/' por ' - ' e ferramentas de busca
+// @author       Gemini
+// @match        *://youiv.tv/*
+// @match        *://ivworld.net/*
+// @match        *://www.ivworld.net/*
+// @match        *://xidol.net/*
+// @match        *://x-idol.net/*
+// @grant        GM_setClipboard
+// @grant        GM_openInTab
+// @run-at       document-idle
 // @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
 // @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
 // ==/UserScript==
@@ -93,19 +93,18 @@
                 let originalTitle = targetElement.innerText.trim();
                 if (!originalTitle || originalTitle.length < 5) return;
 
-                // --- LÓGICA DE LIMPEZA E FORMATAÇÃO DO TÍTULO ---
+                // --- LÓGICA DE LIMPEZA MELHORADA ---
                 let cleanedTitle = originalTitle
-                    .replace(/^Permalink to\s*/i, '') // Remove prefixo de blog
-                    .replace(/\//g, ' - ')            // SUBSTITUI "/" POR " - " (Sena Natsuki fix)
-                    .replace(/\s?\[(MP4|MKV|AVI|WMV)?\/?\d+(\.\d+)?\s?(GB|MB|px|p)\]$/i, '') // Remove info de arquivo no fim
+                    .replace(/^Permalink to\s*/i, '') // Remove prefixo
+                    .replace(/\//g, ' - ')            // Substitui / por -
+                    // Remove especificamente o final tipo [MP4 - 5.45GB] ou [MP4/5.45GB] ou [720p]
+                    .replace(/\s?\[(MP4|MKV|AVI|WMV|720p|1080p|2160p|4K).{1,15}\]$/i, '') 
                     .trim();
 
-                // Extração do ID para busca (mantemos a busca original sem o " - ")
                 let searchId = "";
                 const idMatch = originalTitle.match(/\[?([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))\]?/i);
                 if (idMatch) searchId = idMatch[1].trim();
 
-                // Extração do nome da Atriz
                 let actressName = "";
                 let actressMatch = originalTitle.match(/\]\s*([^–\-\/\[\(]+)/);
                 if (actressMatch && actressMatch[1]) actressName = actressMatch[1].trim();
@@ -121,7 +120,7 @@
                     }));
                 }
 
-                container.appendChild(createStyledButton('Copiar', '📋', 'Copiar título formatado', '#f8f9fa', (btn) => {
+                container.appendChild(createStyledButton('Copiar', '📋', 'Copiar título limpo', '#f8f9fa', (btn) => {
                     copyTextToClipboard(cleanedTitle);
                     btn.innerHTML = '✅ Título!';
                     setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
