@@ -1,15 +1,14 @@
 // ==UserScript==
-// @name         NyaaPorn - Copiador & Abrir Mega (Inverso + Delay)
-// @namespace    http://tampermonkey.net/
-// @version      1.1
-// @description  Copia dados (substituindo / por - no título) e abre links Mega do último para o primeiro
-// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
-// @author       Gemini
-// @match        https://nyaa.porn78.info/*
-// @grant        GM_setClipboard
-// @grant        GM_openInTab
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
+// @name         NyaaPorn - Copiador & Abrir Mega (Inverso + Delay + Auto-Click Download)
+// @namespace    http://tampermonkey.net/
+// @version      1.2
+// @description  Clica no botão download, copia dados e abre links Mega do último para o primeiro
+// @author       Gemini
+// @match        https://nyaa.porn78.info/*
+// @grant        GM_setClipboard
+// @grant        GM_openInTab
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
 // ==/UserScript==
 
 (function() {
@@ -21,10 +20,9 @@
 
         const fullTitle = titleElement.innerText.trim();
         
-        // --- MUDANÇA AQUI: Remove tags de arquivo E substitui "/" por " - " ---
         const cleanTitle = fullTitle
-            .replace(/\s*\[[A-Z0-9.\/ _-]+\]\s*$/i, '') // Remove info de arquivo no final
-            .replace(/\//g, ' - ')                     // Substitui as barras por traços
+            .replace(/\s*\[[A-Z0-9.\/ _-]+\]\s*$/i, '')
+            .replace(/\//g, ' - ')
             .trim();
 
         let actressName = "";
@@ -36,16 +34,24 @@
             actressName = fallbackMatch ? fallbackMatch[1].trim() : "Nome não identificado";
         }
 
-        // Função para abrir links em ordem inversa com delay
         async function openMegaLinks() {
+            const btn = document.getElementById('btn-mega-abrir');
+            const downloadBtn = document.getElementById('download');
+
+            // 1. Clicar no botão de download para carregar os links ocultos
+            if (downloadBtn) {
+                btn.innerText = "⏳ Validando...";
+                downloadBtn.click();
+                // Delay para o site processar a validação e injetar os links no HTML
+                await new Promise(resolve => setTimeout(resolve, 1500));
+            }
+
+            // 2. Localizar os links que apareceram
             const megaLinks = document.querySelectorAll('a[class^="mega"]');
 
             if (megaLinks.length > 0) {
-                // Pega as URLs, remove duplicados e INVERTE a ordem (.reverse())
                 let urls = [...new Set(Array.from(megaLinks).map(a => a.href))];
                 urls.reverse();
-
-                const btn = document.getElementById('btn-mega-abrir');
 
                 btn.disabled = true;
                 btn.style.opacity = '0.5';
@@ -67,7 +73,8 @@
                 setTimeout(() => btn.innerText = "🚀 Abrir Todos Mega", 3000);
 
             } else {
-                alert("Nenhum link com classe 'mega' encontrado.");
+                alert("Nenhum link 'mega' encontrado. Verifique se o clique no botão de download funcionou.");
+                btn.innerText = "🚀 Abrir Todos Mega";
             }
         }
 
