@@ -1,113 +1,171 @@
 // ==UserScript==
-// @name         NyaaPorn - Copiador & Abrir Mega (Inverso + Delay + Auto-Click Download)
+// @name         Gravure Idols ferramentas unificadas
 // @namespace    http://tampermonkey.net/
-// @version      1.2
-// @description  Clica no botão download, copia dados e abre links Mega do último para o primeiro
+// @version      1.6
+// @description  Botões de cópia (Atriz, Título, Caminho) e buscas integradas
 // @author       Gemini
-// @match        https://nyaa.porn78.info/*
+// @match        *://youiv.tv/*
+// @match        *://ivworld.net/*
+// @match        *://www.ivworld.net/*
+// @match        *://xidol.net/*
+// @match        *://x-idol.net/*
 // @grant        GM_setClipboard
 // @grant        GM_openInTab
-// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
-// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Script/main/NyaaPorn - Copiador & Abrir Mega.user.js
+// @run-at       document-idle
+// @updateURL    https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
+// @downloadURL  https://raw.githubusercontent.com/Vinicius-BT/Scripts/main/Gravure Idol Video Blog sites.user.js
 // ==/UserScript==
 
 (function() {
     'use strict';
 
-    function addButtons() {
-        const titleElement = document.querySelector('h1, h2, h3.font-weight-bold') || document.querySelector('.title h2');
-        if (!titleElement || document.getElementById('copy-btn-container')) return;
+    const NYAA_BASE_URL = "https://nyaa.porn78.info/en/video/index?search=";
 
-        const fullTitle = titleElement.innerText.trim();
-        
-        const cleanTitle = fullTitle
-            .replace(/\s*\[[A-Z0-9.\/ _-]+\]\s*$/i, '')
-            .replace(/\//g, ' - ')
-            .trim();
-
-        let actressName = "";
-        const nameMatch = fullTitle.match(/\]\s*(.*?)\s*[–-]/);
-        if (nameMatch && nameMatch[1]) {
-            actressName = nameMatch[1].trim();
-        } else {
-            const fallbackMatch = fullTitle.match(/\]\s*([^\s]+ [^\s]+)/);
-            actressName = fallbackMatch ? fallbackMatch[1].trim() : "Nome não identificado";
-        }
-
-        async function openMegaLinks() {
-            const btn = document.getElementById('btn-mega-abrir');
-            const downloadBtn = document.getElementById('download');
-
-            // 1. Clicar no botão de download para carregar os links ocultos
-            if (downloadBtn) {
-                btn.innerText = "⏳ Validando...";
-                downloadBtn.click();
-                // Delay para o site processar a validação e injetar os links no HTML
-                await new Promise(resolve => setTimeout(resolve, 1500));
-            }
-
-            // 2. Localizar os links que apareceram
-            const megaLinks = document.querySelectorAll('a[class^="mega"]');
-
-            if (megaLinks.length > 0) {
-                let urls = [...new Set(Array.from(megaLinks).map(a => a.href))];
-                urls.reverse();
-
-                btn.disabled = true;
-                btn.style.opacity = '0.5';
-
-                for (let i = 0; i < urls.length; i++) {
-                    const count = i + 1;
-                    btn.innerText = `⏳ Inverso: ${count}/${urls.length}...`;
-
-                    GM_openInTab(urls[i], { active: false, insert: true });
-
-                    if (i < urls.length - 1) {
-                        await new Promise(resolve => setTimeout(resolve, 3000));
-                    }
-                }
-
-                btn.innerText = "✅ Todos Abertos!";
-                btn.style.opacity = '1';
-                btn.disabled = false;
-                setTimeout(() => btn.innerText = "🚀 Abrir Todos Mega", 3000);
-
-            } else {
-                alert("Nenhum link 'mega' encontrado. Verifique se o clique no botão de download funcionou.");
-                btn.innerText = "🚀 Abrir Todos Mega";
-            }
-        }
-
-        const container = document.createElement('div');
-        container.id = 'copy-btn-container';
-        container.style.cssText = 'margin: 15px 0; display: flex; justify-content: center; align-items: center; gap: 15px; width: 100%; flex-wrap: wrap;';
-
-        function createButton(text, color, onClickAction, id = "") {
-            const btn = document.createElement('button');
-            if(id) btn.id = id;
-            btn.innerText = text;
-            btn.style.cssText = `padding: 10px 20px; cursor: pointer; background-color: ${color}; color: white; border: none; border-radius: 6px; font-weight: bold; font-family: sans-serif; font-size: 13px; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1); transition: transform 0.1s;`;
-            btn.onclick = onClickAction;
-            return btn;
-        }
-
-        container.appendChild(createButton("📋 Copiar Título", "#007bff", function() {
-            GM_setClipboard(cleanTitle);
-            this.innerText = "✅ Copiado!";
-            setTimeout(() => this.innerText = "📋 Copiar Título", 1200);
-        }));
-
-        container.appendChild(createButton("👤 Copiar Atriz", "#28a745", function() {
-            GM_setClipboard(actressName);
-            this.innerText = "✅ Copiado!";
-            setTimeout(() => this.innerText = "👤 Copiar Atriz", 1200);
-        }));
-
-        container.appendChild(createButton("🚀 Abrir Todos Mega", "#ff5722", openMegaLinks, "btn-mega-abrir"));
-
-        titleElement.after(container);
+    function copyTextToClipboard(text) {
+        GM_setClipboard(text, 'text');
     }
 
-    window.addEventListener('load', addButtons);
-    setTimeout(addButtons, 1500);
+    function createStyledButton(text, icon, title, bg, onClick) {
+        const btn = document.createElement('button');
+        btn.title = title;
+        Object.assign(btn.style, {
+            margin: '5px 8px 5px 0px',
+            cursor: 'pointer',
+            border: '2px solid #bbb',
+            background: bg || '#f8f9fa',
+            borderRadius: '6px',
+            padding: '12px 18px',
+            fontSize: '14px',
+            fontWeight: 'bold',
+            verticalAlign: 'middle',
+            minWidth: '130px',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+            color: '#333',
+            fontFamily: 'sans-serif'
+        });
+
+        btn.innerHTML = icon ? `${icon} ${text}` : text;
+        btn.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onClick(btn);
+        };
+        return btn;
+    }
+
+    function handleYouIV() {
+        const titleElement = document.querySelector('h1.ts') ||
+                             document.querySelector('#thread_subject') ||
+                             document.querySelector('.vwth h1') ||
+                             document.querySelector('h1');
+
+        if (titleElement && !titleElement.getAttribute('data-processed')) {
+            const titleText = titleElement.innerText;
+            const codeMatch = titleText.match(/([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))/i);
+
+            if (codeMatch && codeMatch[0]) {
+                const code = codeMatch[0].toUpperCase();
+                const container = document.createElement('div');
+                container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
+
+                container.appendChild(createStyledButton('IVWorld', '🔍', `Pesquisar ${code}`, 'rgb(241, 248, 233)', () => {
+                    window.open(`https://ivworld.net/?s=${encodeURIComponent(code)}`, '_blank');
+                }));
+
+                container.appendChild(createStyledButton('Nyaa', '🔞', `Buscar ${code}`, 'rgb(255, 235, 238)', () => {
+                    GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(code)}#gsc.tab=0`);
+                }));
+
+                titleElement.insertAdjacentElement('afterend', container);
+                titleElement.setAttribute('data-processed', 'true');
+            }
+        }
+    }
+
+    function handleBlogs() {
+        const selectors = ['h2.post-title a', '.entry-title', '.post-title'];
+        selectors.forEach(selector => {
+            document.querySelectorAll(selector).forEach(element => {
+                let entryWrapper = element.closest('.entry.clearfix') || element.closest('.post, .entry');
+                if (entryWrapper && entryWrapper.getAttribute('data-gm-processed')) return;
+
+                let targetElement = element.tagName === 'A' ? element : element.querySelector('a') || element;
+                let originalTitle = targetElement.innerText.trim();
+                if (!originalTitle || originalTitle.length < 5) return;
+
+                // --- LÓGICA DE LIMPEZA ---
+                let cleanedTitle = originalTitle
+                    .replace(/^Permalink to\s*/i, '')
+                    .replace(/\//g, ' - ') // Troca barra por traço
+                    .replace(/\s?\[(MP4|MKV|AVI|WMV|720p|1080p|2160p|4K).{1,15}\]$/i, '') 
+                    .trim();
+
+                let searchId = "";
+                const idMatch = originalTitle.match(/\[?([A-Z0-9]+-[A-Z0-9]+|(\d{5,}))\]?/i);
+                if (idMatch) searchId = idMatch[1].trim();
+
+                let actressName = "";
+                let actressMatch = originalTitle.match(/\]\s*([^–\-\/\[\(]+)/);
+                if (actressMatch && actressMatch[1]) {
+                    actressName = actressMatch[1].trim();
+                } else {
+                    actressName = "Desconhecida";
+                }
+
+                const container = document.createElement('div');
+                container.style.cssText = 'display: block; margin: 15px 0; clear: both;';
+
+                // Botão: Atriz
+                if (actressName !== "Desconhecida") {
+                    container.appendChild(createStyledButton('Atriz', '👤', `Copiar: ${actressName}`, '#e3f2fd', (btn) => {
+                        copyTextToClipboard(actressName);
+                        btn.innerHTML = '✅ Copiado!';
+                        setTimeout(() => { btn.innerHTML = '👤 Atriz'; }, 1200);
+                    }));
+                }
+
+                // Botão: Título
+                container.appendChild(createStyledButton('Copiar', '📋', 'Copiar título limpo', '#f8f9fa', (btn) => {
+                    copyTextToClipboard(cleanedTitle);
+                    btn.innerHTML = '✅ Título!';
+                    setTimeout(() => { btn.innerHTML = '📋 Copiar'; }, 1200);
+                }));
+
+                // Botão: Caminho (NOVO)
+                container.appendChild(createStyledButton('Caminho', '📂', 'Copiar caminho de download', '#fff3e0', (btn) => {
+                    const fullPath = `/work/Downloads/${actressName}/${cleanedTitle}`;
+                    copyTextToClipboard(fullPath);
+                    btn.innerHTML = '✅ Caminho!';
+                    setTimeout(() => { btn.innerHTML = '📂 Caminho'; }, 1200);
+                }));
+
+                // Botões de Busca
+                if (searchId) {
+                    container.appendChild(createStyledButton('Site', '🔍', `Pesquisar código: ${searchId}`, null, () => {
+                        window.open(`${window.location.origin}/?s=${encodeURIComponent(searchId)}`, '_blank');
+                    }));
+
+                    container.appendChild(createStyledButton('Nyaa', '🔞', `Buscar no Nyaa: ${searchId}`, '#ffebee', () => {
+                        GM_openInTab(`${NYAA_BASE_URL}${encodeURIComponent(searchId)}#gsc.tab=0`);
+                    }));
+                }
+
+                targetElement.parentNode.insertBefore(container, targetElement.nextSibling);
+                if (entryWrapper) entryWrapper.setAttribute('data-gm-processed', 'true');
+            });
+        });
+    }
+
+    function init() {
+        if (window.location.hostname.includes('youiv.tv')) {
+            handleYouIV();
+        } else {
+            handleBlogs();
+        }
+    }
+
+    init();
+    const observer = new MutationObserver(init);
+    observer.observe(document.body, { childList: true, subtree: true });
+
 })();
