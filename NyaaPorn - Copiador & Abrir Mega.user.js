@@ -4,6 +4,7 @@
 // @version      1.6
 // @description  Botões de cópia (Atriz, Título, Caminho) e buscas integradas
 // @author       Gemini
+// @icon         https://baseec-img-mng.akamaized.net/images/user/logo/dde8cbaba8f25c311920bd2e0e13afd6.png
 // @match        *://youiv.tv/*
 // @match        *://ivworld.net/*
 // @match        *://www.ivworld.net/*
